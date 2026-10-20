@@ -46,7 +46,7 @@ jobs:
     - name: export-solution action
       uses: microsoft/powerplatform-actions/export-solution@0e44beb5424af932af47250a2568eba4c259e3d8 # v1.10.0
       with:
-        environment-url: ${{vars.https://org1b9f1618.crm.dynamics.com/}}
+        environment-url: ${{vars.https://org1b9f1618.crm.dynamics.com}}
         app-id: ${{vars.9d6d20d8-cbfe-4a8f-bac3-f4863675a3c5}}
         client-secret: ${{ secrets.PowerPlatformSPN }}
         tenant-id: ${{vars.b7f604a0-00a9-4188-9248-42f3a5aac2e9}}

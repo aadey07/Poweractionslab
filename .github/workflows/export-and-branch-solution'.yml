@@ -1,0 +1,78 @@
+name: export-and-branch-solution
+# Export solution from DEV environment
+#  unpack it and prepare, commit and push a git branch with the changes
+
+on:
+  workflow_dispatch:
+    inputs:
+      # Change this value
+      solution_name:
+        description: 'name of the solution to worked on from Power Platform'
+        required: true
+        default: mpa_ShiftPlanner
+       #Do Not change these values
+      solution_exported_folder:
+        description: 'folder name for staging the exported solution *do not change*'
+        required: true
+        default: out/exported/
+      solution_folder:
+        description: 'staging the unpacked solution folder before check-in *do not change*'
+        required: true
+        default: out/solutions/
+      solution_target_folder: 
+       description: 'folder name to be created and checked in *do not change*'
+       required: true
+       default: solutions/
+permissions:
+  contents: write
+jobs:
+  export-from-dev:
+    runs-on: windows-latest
+    # or you can say runs-on: ubuntu-latest
+    env:
+      RUNNER_DEBUG: 1
+
+    steps:
+    - uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e # v2.8.0
+      with:
+        lfs: true
+
+    - name: Install Power Platform Tools
+      id: install-power-platform-tools
+      uses: microsoft/powerplatform-actions/actions-install@0e44beb5424af932af47250a2568eba4c259e3d8 # v1.10.0
+      with:
+        pac-version-override: 1.43.6
+
+    - name: export-solution action
+      uses: microsoft/powerplatform-actions/export-solution@0e44beb5424af932af47250a2568eba4c259e3d8 # v1.10.0
+      with:
+        environment-url: ${{vars.https://org1b9f1618.crm.dynamics.com/}}
+        app-id: ${{vars.9d6d20d8-cbfe-4a8f-bac3-f4863675a3c5}}
+        client-secret: ${{ secrets.PowerPlatformSPN }}
+        tenant-id: ${{vars.b7f604a0-00a9-4188-9248-42f3a5aac2e9}}
+        solution-name: ${{ github.event.inputs.solution_name }}
+        solution-output-file: ${{ github.event.inputs.solution_exported_folder}}/${{ github.event.inputs.solution_name }}.zip
+
+    - name: unpack-solution action
+      uses: microsoft/powerplatform-actions/unpack-solution@0e44beb5424af932af47250a2568eba4c259e3d8 # v1.10.0
+      with:
+        solution-file: ${{ github.event.inputs.solution_exported_folder}}/${{ github.event.inputs.solution_name }}.zip
+        solution-folder: ${{ github.event.inputs.solution_folder}}/${{ github.event.inputs.solution_name }}
+        solution-type: 'Unmanaged'
+        overwrite-files: true
+
+    - name: unpack-shiftplanner-app action
+      run: ${{env.POWERPLATFORMTOOLS_PACPATH}} canvas unpack --msapp ${{ github.event.inputs.solution_folder}}/${{ github.event.inputs.solution_name }}/CanvasApps/mpa_shiftplanner_7f37a_DocumentUri.msapp --sources ${{ github.event.inputs.solution_folder}}/${{ github.event.inputs.solution_name }}/CanvasApps/shiftplanner
+      continue-on-error: true 
+
+    - name: unpack-shiftplannermobile-app action
+      run: ${{env.POWERPLATFORMTOOLS_PACPATH}} canvas unpack --msapp ${{ github.event.inputs.solution_folder}}/${{ github.event.inputs.solution_name }}/CanvasApps/mpa_shiftplannermobile_4f37b_DocumentUri.msapp --sources ${{ github.event.inputs.solution_folder}}/${{ github.event.inputs.solution_name }}/CanvasApps/shiftplannermobile
+      continue-on-error: true
+
+    - name: branch-solution, prepare it for a PullRequest
+      uses: microsoft/powerplatform-actions/branch-solution@0e44beb5424af932af47250a2568eba4c259e3d8 # v1.10.0
+      with:
+        solution-folder: ${{ github.event.inputs.solution_folder}}/${{ github.event.inputs.solution_name }}
+        solution-target-folder: ${{ github.event.inputs.solution_target_folder}}/${{ github.event.inputs.solution_name }}
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        allow-empty-commit: true
